@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mi Tienda Web</title>
+  <link rel="stylesheet" href="css/estilos.css" />
+  <link rel="manifest" href="manifest.json" />
+</head>
+<body>
+  <header>
+    <h1>Mi Tienda Web</h1>
+  </header>
+
+  <section id="login-section">
+    <h2>Iniciar Sesión</h2>
+    <form id="login-form">
+      <input type="text" placeholder="Usuario" required />
+      <input type="password" placeholder="Contraseña" required />
+      <button type="submit">Entrar</button>
+    </form>
+  </section>
+
+  <section id="crud-section" style="display: none;">
+    <h2>Gestión de Productos</h2>
+    <form id="product-form">
+      <input type="text" placeholder="Nombre del producto" required />
+      <input type="number" placeholder="Precio" required />
+      <input type="number" placeholder="Cantidad" required />
+      <button type="submit">Agregar</button>
+    </form>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Precio</th>
+          <th>Cantidad</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="product-list">
+        <!-- Productos aparecerán aquí -->
+      </tbody>
+    </table>
+  </section>
+
+  <script>
+    // Simulación de login
+    const loginForm = document.getElementById("login-form");
+    const loginSection = document.getElementById("login-section");
+    const crudSection = document.getElementById("crud-section");
+
+    loginForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      loginSection.style.display = "none";
+      crudSection.style.display = "block";
+    });
+
+    // Simulación de productos
+    const productForm = document.getElementById("product-form");
+    const productList = document.getElementById("product-list");
+
+    productForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const inputs = productForm.querySelectorAll("input");
+      const [nombre, precio, cantidad] = Array.from(inputs).map(i => i.value);
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${nombre}</td>
+        <td>$${precio}</td>
+        <td>${cantidad}</td>
+        <td><button class="eliminar">Eliminar</button></td>
+      `;
+
+      tr.querySelector(".eliminar").addEventListener("click", () => tr.remove());
+      productList.appendChild(tr);
+      productForm.reset();
+    });
+  </script>
+</body>
+</html>
