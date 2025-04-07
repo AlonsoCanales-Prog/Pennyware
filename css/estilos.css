@@ -6,11 +6,19 @@ body {
   }
   
   header {
-    background-color: #2563eb;
-    color: white;
-    padding: 1rem;
+    background-image: url("https://s.yimg.com/uu/api/res/1.2/D.LVUrBuKJ7cU0DnQglpZg--~B/aD03MjA7dz0xMjgwO2FwcGlkPXl0YWNoeW9u/http://media.zenfs.com/en-US/homerun/etonline.tv/cbd03e84aad99ee2d74663b9c0d79302"); /* ajusta el nombre si es distinto */
+    background-size: cover;        /* Hace que la imagen cubra todo el área */
+    background-repeat: no-repeat;  /* Evita que se repita si no alcanza */
+    background-position: center;   /* Centra la imagen */
+    height: 180px;                 /* Ajusta la altura del header a lo que necesites */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: black;
     text-align: center;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
   }
+  
   
   section {
     max-width: 600px;
