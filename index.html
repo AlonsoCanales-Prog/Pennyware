@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mi Tienda Web</title>
+  <title>Pennyware</title>
   <link rel="stylesheet" href="css/estilos.css" />
-  <link rel="manifest" href="manifest.json" />
 </head>
 <body>
   <header>
@@ -22,31 +21,66 @@
   </section>
 
   <section id="crud-section" style="display: none;">
-    <h2>Gestión de Productos</h2>
-    <form id="product-form">
-      <input type="text" placeholder="Nombre del producto" required />
-      <input type="number" placeholder="Precio" required />
-      <input type="number" placeholder="Cantidad" required />
-      <button type="submit">Agregar</button>
+    <h2>Gestión de Pedidos</h2>
+
+    <form id="pedido-form">
+      <input type="text" id="producto" placeholder="Producto" required />
+      <input type="number" id="cantidad" placeholder="Cantidad" required />
+      <button type="submit">Crear Pedido</button>
     </form>
 
-    <table>
-      <thead>
-        <tr>
-          <th>Nombre</th>
-          <th>Precio</th>
-          <th>Cantidad</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody id="product-list">
-        <!-- Productos aparecerán aquí -->
-      </tbody>
-    </table>
+    <h3>Buscar Pedido por ID</h3>
+    <form id="buscar-form">
+      <input type="number" id="buscar-id" placeholder="ID del pedido" required />
+      <button type="submit">Buscar</button>
+    </form>
+    <pre id="pedido-detalle"></pre>
+
+    <h3>Todos los Pedidos</h3>
+    <button id="cargar-pedidos">Cargar Pedidos</button>
+    <ul id="lista-pedidos"></ul>
+
+    <h3>Facturación</h3>
+    <form id="factura-form">
+      <input type="number" id="factura-id" placeholder="ID del pedido" required />
+      <button type="submit">Crear Factura</button>
+    </form>
+
+    <h3>Buscar Factura por ID</h3>
+    <form id="buscar-factura-form">
+      <input type="number" id="buscar-factura-id" placeholder="ID de la factura" required />
+      <button type="submit">Buscar Factura</button>
+    </form>
+    <pre id="factura-detalle"></pre>
+
+    <h3>Pagos</h3>
+    <form id="pago-form">
+      <input type="number" id="pago-id" placeholder="ID de la factura" required />
+      <button type="submit">Realizar Pago</button>
+    </form>
+
+    <h3>Buscar Pago por ID</h3>
+    <form id="buscar-pago-form">
+      <input type="number" id="buscar-pago-id" placeholder="ID del pago" required />
+      <button type="submit">Buscar Pago</button>
+    </form>
+    <pre id="pago-detalle"></pre>
+
+    <h3>Reintentar Fallidos</h3>
+    <button id="reintentar-fallidos">Reintentar Pedidos Fallidos</button>
   </section>
 
+  <div id="modal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="document.getElementById('modal').style.display='none'">&times;</span>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+
   <script>
-    // Simulación de login
+    const API_BASE = 'https://oyster-app-g3sar.ondigitalocean.app/api/MCP';
+    const PROXY_URL = 'https://cors-anywhere.herokuapp.com/';  // URL del proxy
+
     const loginForm = document.getElementById("login-form");
     const loginSection = document.getElementById("login-section");
     const crudSection = document.getElementById("crud-section");
@@ -57,27 +91,232 @@
       crudSection.style.display = "block";
     });
 
-    // Simulación de productos
-    const productForm = document.getElementById("product-form");
-    const productList = document.getElementById("product-list");
+    function showModal(content) {
+      const modal = document.getElementById("modal");
+      const body = document.getElementById("modal-body");
+      body.innerHTML = content;
+      modal.style.display = "block";
+    }
 
-    productForm.addEventListener("submit", (e) => {
+    // Crear pedido
+    document.getElementById("pedido-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const producto = document.getElementById("producto").value;
+    const cantidad = parseInt(document.getElementById("cantidad").value);
+
+    const data = {
+        idCliente: 1, 
+        detalles: [
+            {
+                idProducto: 1, 
+                cantidad: cantidad,
+                precio: 100
+            }
+        ]
+    };
+
+    try {
+        const res = await fetch(`${PROXY_URL}${API_BASE}/pedido`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+        });
+
+        const textResponse = await res.text();
+        console.log("Respuesta del servidor:", textResponse);
+
+        if (!textResponse) throw new Error("La respuesta del servidor está vacía.");
+
+        let result;
+        try {
+            result = JSON.parse(textResponse);
+        } catch (jsonError) {
+            throw new Error("La respuesta no es un JSON válido: " + textResponse);
+        }
+
+        if (result.data && result.data.id) {
+            alert("Pedido creado con ID: " + result.data.id);
+        } else {
+            alert(result.message || "Pedido creado, pero no se devolvió el ID");
+        }
+    } catch (error) {
+        alert("Error al crear pedido: " + error.message);
+        console.error(error);
+    }
+});
+
+
+    // Buscar pedido por ID
+    document.getElementById("buscar-form").addEventListener("submit", async (e) => {
       e.preventDefault();
-      const inputs = productForm.querySelectorAll("input");
-      const [nombre, precio, cantidad] = Array.from(inputs).map(i => i.value);
-
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${nombre}</td>
-        <td>$${precio}</td>
-        <td>${cantidad}</td>
-        <td><button class="eliminar">Eliminar</button></td>
-      `;
-
-      tr.querySelector(".eliminar").addEventListener("click", () => tr.remove());
-      productList.appendChild(tr);
-      productForm.reset();
+      const id = document.getElementById("buscar-id").value;
+      try {
+        const res = await fetch(`${PROXY_URL}${API_BASE}/pedidos/${id}`);
+        if (!res.ok) {
+          throw new Error('Pedido no encontrado');
+        }
+        const data = await res.json();
+        document.getElementById("pedido-detalle").textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        alert("Error al obtener el pedido: " + error.message);
+        console.error(error);
+      }
     });
+
+    // Cargar todos los pedidos
+    document.getElementById("cargar-pedidos").addEventListener("click", async () => {
+        try {
+            const res = await fetch(`${PROXY_URL}${API_BASE}/pedidos`);
+            if (!res.ok) {
+            throw new Error('Error al cargar los pedidos');
+            }
+
+            const respuesta = await res.json(); // objeto con isSuccess, message, data
+            console.log("Pedidos recibidos:", respuesta);
+
+            const pedidos = respuesta.data; // accedemos al array
+
+            const lista = document.getElementById("lista-pedidos");
+            lista.innerHTML = '';
+
+            pedidos.forEach(pedido => {
+            const li = document.createElement("li");
+            li.textContent = `ID: ${pedido.id}, Producto: ${pedido.producto || 'N/A'}, Cantidad: ${pedido.cantidad || 'N/A'}`;
+            lista.appendChild(li);
+            });
+        } catch (error) {
+            alert("Error al cargar los pedidos: " + error.message);
+            console.error(error);
+        }
+    });
+
+
+    // Crear factura
+    document.getElementById("factura-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const facturaId = document.getElementById("factura-id").value;
+      const total = 100.00; 
+
+      const data = { idPedido: facturaId, total };
+
+      try {
+        const res = await fetch(`${PROXY_URL}${API_BASE}/factura`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data)
+        });
+
+        const result = await res.json();
+        if (!res.ok) {
+          throw new Error(result.message || 'Error al crear la factura');
+        }
+
+        alert("Factura creada con ID: " + result.id);
+      } catch (error) {
+        alert("Error al crear factura: " + error.message);
+        console.error(error);
+      }
+    });
+
+    // Buscar factura por ID
+    document.getElementById("buscar-factura-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const id = document.getElementById("buscar-factura-id").value;
+      try {
+        const res = await fetch(`${PROXY_URL}${API_BASE}/facturas/${id}`);
+        if (!res.ok) {
+          throw new Error('Factura no encontrada');
+        }
+        const data = await res.json();
+        document.getElementById("factura-detalle").textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        alert("Error al obtener la factura: " + error.message);
+        console.error(error);
+      }
+    });
+
+    // Realizar pago
+    document.getElementById("pago-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const pagoId = document.getElementById("pago-id").value;
+      const monto = 100.00; 
+
+      const data = { idFactura: pagoId, monto, metodoPago: "Tarjeta de Crédito" };
+
+      try {
+        const res = await fetch(`${PROXY_URL}${API_BASE}/pago`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data)
+        });
+
+        const result = await res.json();
+        if (!res.ok) {
+          throw new Error(result.message || 'Error al realizar el pago');
+        }
+
+        alert("Pago realizado con ID: " + result.id);
+      } catch (error) {
+        alert("Error al realizar el pago: " + error.message);
+        console.error(error);
+      }
+    });
+
+    // Buscar pago por ID
+    document.getElementById("buscar-pago-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const id = document.getElementById("buscar-pago-id").value;
+      try {
+        const res = await fetch(`${PROXY_URL}${API_BASE}/pagos/${id}`);
+        if (!res.ok) {
+          throw new Error('Pago no encontrado');
+        }
+        const data = await res.json();
+        const factura = data.data;  // accede a la parte útil
+        document.getElementById("factura-detalle").innerHTML = `
+        <strong>ID:</strong> ${factura.id}<br>
+        <strong>ID Pedido:</strong> ${factura.idPedido}<br>
+        <strong>Fecha:</strong> ${new Date(factura.fechaFactura).toLocaleString()}<br>
+        <strong>Total:</strong> $${factura.total}
+        `;
+      } catch (error) {
+        alert("Error al obtener el pago: " + error.message);
+        console.error(error);
+      }
+    });
+
+    // Reintentar pedidos fallidos
+// Reintentar pedidos fallidos
+    document.getElementById("reintentar-fallidos").addEventListener("click", async () => {
+    try {
+        const res = await fetch(`${PROXY_URL}${API_BASE}/reintentarFallidos`, {
+        method: "POST"
+        });
+
+        const text = await res.text(); // leemos como texto primero
+        console.log("Respuesta cruda del servidor:", text);
+
+        let result = {};
+        if (text) {
+        try {
+            result = JSON.parse(text);
+        } catch (err) {
+            console.warn("No se pudo parsear la respuesta como JSON");
+        }
+        }
+
+        if (!res.ok) {
+        throw new Error(result.message || `Error HTTP ${res.status}`);
+        }
+
+        alert(result.message || "Pedidos fallidos reintentados con éxito");
+    } catch (error) {
+        alert("Error al reintentar los pedidos fallidos: " + error.message);
+        console.error(error);
+    }
+    });
+
+
   </script>
 </body>
 </html>
