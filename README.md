@@ -18,7 +18,7 @@ Aplicación web progresiva (PWA) para gestión completa de:
 - Reintento de transacciones fallidas
 
 ## Clonar repositorio
-https://github.com/AlonsoCanales-Prog/Prueba_real.git
+[https://github.com/AlonsoCanales-Prog/Prueba_real.git](https://github.com/AlonsoCanales-Prog/Pennyware.git)
 
   ### manifest.json
   ```json
