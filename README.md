@@ -17,6 +17,9 @@ Aplicación web progresiva (PWA) para gestión completa de:
 - Pagos
 - Reintento de transacciones fallidas
 
+## Clonar repositorio
+https://github.com/AlonsoCanales-Prog/Prueba_real.git
+
   ### manifest.json
   ```json
     {
