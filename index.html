@@ -5,6 +5,86 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Pennyware</title>
   <link rel="stylesheet" href="css/estilos.css" />
+  <style>
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.6;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      color: #333;
+    }
+    header {
+      background-color: #2563eb;
+      color: white;
+      padding: 20px;
+      text-align: center;
+      border-radius: 5px;
+      margin-bottom: 20px;
+    }
+    section {
+      background: #f9f9f9;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    input, button {
+      padding: 10px;
+      margin: 8px 0;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #2563eb;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #1e4fba;
+    }
+    #lista-pedidos {
+      list-style-type: none;
+      padding: 0;
+    }
+    #lista-pedidos li {
+      background: white;
+      padding: 10px;
+      margin: 5px 0;
+      border-radius: 4px;
+      border-left: 4px solid #2563eb;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.4);
+    }
+    .modal-content {
+      background-color: #fefefe;
+      margin: 15% auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 80%;
+      border-radius: 8px;
+    }
+    .close {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
   <header>
@@ -79,8 +159,13 @@
 
   <script>
     const API_BASE = 'https://oyster-app-g3sar.ondigitalocean.app/api/MCP';
-    const PROXY_URL = 'https://cors-anywhere.herokuapp.com/';  // URL del proxy
 
+    // Función para formatear dinero
+    const formatMoney = (amount) => {
+      return '$' + parseFloat(amount).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+    };
+
+    // Login simulador
     const loginForm = document.getElementById("login-form");
     const loginSection = document.getElementById("login-section");
     const crudSection = document.getElementById("crud-section");
@@ -91,6 +176,7 @@
       crudSection.style.display = "block";
     });
 
+    // Función para mostrar modal
     function showModal(content) {
       const modal = document.getElementById("modal");
       const body = document.getElementById("modal-body");
@@ -98,28 +184,26 @@
       modal.style.display = "block";
     }
 
-    // Crear pedido
+    // Crear pedido 
     document.getElementById("pedido-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const producto = document.getElementById("producto").value;
-    const cantidad = parseInt(document.getElementById("cantidad").value);
+      e.preventDefault();
+      const producto = document.getElementById("producto").value;
+      const cantidad = parseInt(document.getElementById("cantidad").value);
 
-    const data = {
+      const data = {
         idCliente: 1, 
-        detalles: [
-            {
-                idProducto: 1, 
-                cantidad: cantidad,
-                precio: 100
-            }
-        ]
-    };
+        detalles: [{
+          idProducto: 1, 
+          cantidad: cantidad,
+          precioUnitario: 10000
+        }]
+      };
 
-    try {
-        const res = await fetch(`${PROXY_URL}${API_BASE}/pedido`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(data)
+      try {
+        const res = await fetch(`${API_BASE}/pedido`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data)
         });
 
         const textResponse = await res.text();
@@ -129,78 +213,119 @@
 
         let result;
         try {
-            result = JSON.parse(textResponse);
+          result = JSON.parse(textResponse);
         } catch (jsonError) {
-            throw new Error("La respuesta no es un JSON válido: " + textResponse);
+          throw new Error("La respuesta no es un JSON válido: " + textResponse);
         }
 
         if (result.data && result.data.id) {
-            alert("Pedido creado con ID: " + result.data.id);
+          alert(`✅ Pedido creado con ID: ${result.data.id}\nProducto: ${producto}\nCantidad: ${cantidad}`);
         } else {
-            alert(result.message || "Pedido creado, pero no se devolvió el ID");
+          alert(result.message || "Pedido creado, pero no se devolvió el ID");
         }
-    } catch (error) {
-        alert("Error al crear pedido: " + error.message);
+      } catch (error) {
+        alert("❌ Error al crear pedido: " + error.message);
         console.error(error);
-    }
-});
-
+      }
+    });
 
     // Buscar pedido por ID
     document.getElementById("buscar-form").addEventListener("submit", async (e) => {
       e.preventDefault();
       const id = document.getElementById("buscar-id").value;
+      
+      if (!id || isNaN(id)) {
+        alert("❌ Por favor ingrese un ID numérico válido");
+        return;
+      }
+
       try {
-        const res = await fetch(`${PROXY_URL}${API_BASE}/pedidos/${id}`);
+        const res = await fetch(`${API_BASE}/pedidos/${id}`);
+        
         if (!res.ok) {
-          throw new Error('Pedido no encontrado');
+          throw new Error(`Error HTTP ${res.status}`);
         }
-        const data = await res.json();
-        document.getElementById("pedido-detalle").textContent = JSON.stringify(data, null, 2);
+
+        const response = await res.json();
+        
+        if (!response.isSuccess) {
+          throw new Error(response.message || "La consulta no fue exitosa");
+        }
+
+        const pedido = response.data;
+        const fechaFormateada = new Date(pedido.fechaPedido).toLocaleString('es-ES');
+        
+        // Calcular total y preparar detalles
+        let total = 0;
+        let detallesTexto = "";
+        
+        pedido.detalles.forEach((item, index) => {
+          const subtotal = item.cantidad * item.precioUnitario;
+          total += subtotal;
+          
+          detallesTexto += `
+${index + 1}. Producto ID: ${item.idProducto}
+   • Cantidad: ${item.cantidad}
+   • Precio unitario: ${formatMoney(item.precioUnitario)}
+   • Subtotal: ${formatMoney(subtotal)}\n\n`;
+        });
+
+        
+        const mensaje = `
+📦 PEDIDO #${pedido.id}
+--------------------------
+📅 Fecha: ${fechaFormateada}
+👤 Cliente ID: ${pedido.idCliente}
+
+🛒 DETALLES:
+${detallesTexto}
+💰 TOTAL DEL PEDIDO: ${formatMoney(total)}`;
+
+        alert(mensaje);
+        document.getElementById("buscar-id").value = "";
+
       } catch (error) {
-        alert("Error al obtener el pedido: " + error.message);
-        console.error(error);
+        alert(`❌ Error al buscar pedido:\n${error.message}`);
+        console.error("Error completo:", error);
       }
     });
 
-    // Cargar todos los pedidos
+    // Cargar todos los pedidos 
     document.getElementById("cargar-pedidos").addEventListener("click", async () => {
-        try {
-            const res = await fetch(`${PROXY_URL}${API_BASE}/pedidos`);
-            if (!res.ok) {
-            throw new Error('Error al cargar los pedidos');
-            }
-
-            const respuesta = await res.json(); // objeto con isSuccess, message, data
-            console.log("Pedidos recibidos:", respuesta);
-
-            const pedidos = respuesta.data; // accedemos al array
-
-            const lista = document.getElementById("lista-pedidos");
-            lista.innerHTML = '';
-
-            pedidos.forEach(pedido => {
-            const li = document.createElement("li");
-            li.textContent = `ID: ${pedido.id}, Producto: ${pedido.producto || 'N/A'}, Cantidad: ${pedido.cantidad || 'N/A'}`;
-            lista.appendChild(li);
-            });
-        } catch (error) {
-            alert("Error al cargar los pedidos: " + error.message);
-            console.error(error);
+      try {
+        const res = await fetch(`${API_BASE}/pedidos`);
+        if (!res.ok) {
+          throw new Error('Error al cargar los pedidos');
         }
-    });
 
+        const respuesta = await res.json();
+        console.log("Pedidos recibidos:", respuesta);
+
+        const pedidos = respuesta.data;
+        const lista = document.getElementById("lista-pedidos");
+        lista.innerHTML = '';
+
+        pedidos.forEach(pedido => {
+          const li = document.createElement("li");
+          li.textContent = `ID: ${pedido.id} - Cliente: ${pedido.idCliente} - Productos: ${pedido.detalles?.length || 0}`;
+          lista.appendChild(li);
+        });
+      } catch (error) {
+        alert("Error al cargar los pedidos: " + error.message);
+        console.error(error);
+      }
+    });
 
     // Crear factura
     document.getElementById("factura-form").addEventListener("submit", async (e) => {
       e.preventDefault();
       const facturaId = document.getElementById("factura-id").value;
-      const total = 100.00; 
+      const total = 10000.00;
 
       const data = { idPedido: facturaId, total };
 
       try {
-        const res = await fetch(`${PROXY_URL}${API_BASE}/factura`, {
+        const res = await fetch(`${API_BASE}/factura`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(data)
@@ -211,9 +336,9 @@
           throw new Error(result.message || 'Error al crear la factura');
         }
 
-        alert("Factura creada con ID: " + result.id);
+        alert(`✅ Factura creada con ID: ${result.data?.id || 'N/A'}\nTotal: ${formatMoney(total)}`);
       } catch (error) {
-        alert("Error al crear factura: " + error.message);
+        alert("❌ Error al crear factura: " + error.message);
         console.error(error);
       }
     });
@@ -223,28 +348,42 @@
       e.preventDefault();
       const id = document.getElementById("buscar-factura-id").value;
       try {
-        const res = await fetch(`${PROXY_URL}${API_BASE}/facturas/${id}`);
+        const res = await fetch(`${API_BASE}/facturas/${id}`);
         if (!res.ok) {
           throw new Error('Factura no encontrada');
         }
         const data = await res.json();
-        document.getElementById("factura-detalle").textContent = JSON.stringify(data, null, 2);
+        
+        const factura = data.data;
+        const mensaje = `
+🧾 FACTURA #${factura.id}
+--------------------------
+📅 Fecha: ${new Date(factura.fechaFactura).toLocaleString()}
+📦 Pedido ID: ${factura.idPedido}
+💰 Total: ${formatMoney(factura.total)}
+${factura.pagado ? '✅ PAGADA' : '❌ PENDIENTE'}`;
+
+        alert(mensaje);
       } catch (error) {
-        alert("Error al obtener la factura: " + error.message);
+        alert("❌ Error al obtener la factura: " + error.message);
         console.error(error);
       }
     });
 
-    // Realizar pago
+    // Realizar pago 
     document.getElementById("pago-form").addEventListener("submit", async (e) => {
       e.preventDefault();
       const pagoId = document.getElementById("pago-id").value;
-      const monto = 100.00; 
+      const monto = 10000.00;
 
-      const data = { idFactura: pagoId, monto, metodoPago: "Tarjeta de Crédito" };
+      const data = { 
+        idFactura: pagoId, 
+        monto, 
+        metodoPago: "Tarjeta de Crédito" 
+      };
 
       try {
-        const res = await fetch(`${PROXY_URL}${API_BASE}/pago`, {
+        const res = await fetch(`${API_BASE}/pago`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(data)
@@ -255,68 +394,69 @@
           throw new Error(result.message || 'Error al realizar el pago');
         }
 
-        alert("Pago realizado con ID: " + result.id);
+        alert(`✅ Pago realizado con ID: ${result.data?.id || 'N/A'}\nMonto: ${formatMoney(monto)}`);
       } catch (error) {
-        alert("Error al realizar el pago: " + error.message);
+        alert("❌ Error al realizar el pago: " + error.message);
         console.error(error);
       }
     });
 
-    // Buscar pago por ID
+    // Buscar pago por ID 
     document.getElementById("buscar-pago-form").addEventListener("submit", async (e) => {
       e.preventDefault();
       const id = document.getElementById("buscar-pago-id").value;
       try {
-        const res = await fetch(`${PROXY_URL}${API_BASE}/pagos/${id}`);
+        const res = await fetch(`${API_BASE}/pagos/${id}`);
         if (!res.ok) {
           throw new Error('Pago no encontrado');
         }
         const data = await res.json();
-        const factura = data.data;  // accede a la parte útil
-        document.getElementById("factura-detalle").innerHTML = `
-        <strong>ID:</strong> ${factura.id}<br>
-        <strong>ID Pedido:</strong> ${factura.idPedido}<br>
-        <strong>Fecha:</strong> ${new Date(factura.fechaFactura).toLocaleString()}<br>
-        <strong>Total:</strong> $${factura.total}
-        `;
+        const pago = data.data;
+        
+        const mensaje = `
+💳 PAGO #${pago.id}
+--------------------------
+📅 Fecha: ${new Date(pago.fechaPago).toLocaleString()}
+🧾 Factura ID: ${pago.idFactura}
+💰 Monto: ${formatMoney(pago.monto)}
+💳 Método: ${pago.metodoPago}`;
+
+        alert(mensaje);
       } catch (error) {
-        alert("Error al obtener el pago: " + error.message);
+        alert("❌ Error al obtener el pago: " + error.message);
         console.error(error);
       }
     });
 
-    // Reintentar pedidos fallidos
-// Reintentar pedidos fallidos
+    // Reintentar pedidos fallidos 
     document.getElementById("reintentar-fallidos").addEventListener("click", async () => {
-    try {
-        const res = await fetch(`${PROXY_URL}${API_BASE}/reintentarFallidos`, {
-        method: "POST"
+      try {
+        const res = await fetch(`${API_BASE}/reintentarFallidos`, {
+          method: "POST"
         });
 
-        const text = await res.text(); // leemos como texto primero
+        const text = await res.text();
         console.log("Respuesta cruda del servidor:", text);
 
         let result = {};
         if (text) {
-        try {
+          try {
             result = JSON.parse(text);
-        } catch (err) {
+          } catch (err) {
             console.warn("No se pudo parsear la respuesta como JSON");
-        }
+          }
         }
 
         if (!res.ok) {
-        throw new Error(result.message || `Error HTTP ${res.status}`);
+          throw new Error(result.message || `Error HTTP ${res.status}`);
         }
 
-        alert(result.message || "Pedidos fallidos reintentados con éxito");
-    } catch (error) {
-        alert("Error al reintentar los pedidos fallidos: " + error.message);
+        alert(result.message || "✅ Pedidos fallidos reintentados con éxito");
+      } catch (error) {
+        alert("❌ Error al reintentar los pedidos fallidos: " + error.message);
         console.error(error);
-    }
+      }
     });
-
-
   </script>
 </body>
 </html>
